@@ -13,6 +13,10 @@ CORS(app)
 # Load API Key dari .env
 load_dotenv()
 api_key = os.getenv("OPENROUTER_API_KEY")
+if not api_key:
+    raise Exception("API Key OpenRouter tidak ditemukan di environment variable.")
+
+
 
 # Fungsi ambil transkrip YouTube
 def get_transcript(video_url):
