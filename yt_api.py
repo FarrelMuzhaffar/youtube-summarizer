@@ -70,4 +70,5 @@ def summarize():
         return jsonify({"error": "Gagal meringkas video", "details": response.text}), 500
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))  # ambil PORT dari environment variable
+    app.run(host="0.0.0.0", port=port)
