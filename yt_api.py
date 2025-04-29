@@ -34,10 +34,6 @@ def get_transcript(video_url):
         return None
 
 # Endpoint API
-@app.route("/summarize", methods=["POST"])
-def summarize():
-    data = request.get_json()
-    video_url = data.get("video_url")
 
 
 
@@ -46,41 +42,47 @@ def home():
     return "YouTube Summarizer API is running 🚀", 200
 
 
+@app.route("/summarize", methods=["POST"])
+def summarize():
+    try:
+        data = request.get_json()
+        if not data or "video_url" not in data:
+            return jsonify({"error": "Parameter 'video_url' tidak ditemukan"}), 400
 
+        video_url = data["video_url"]
+        content = get_transcript(video_url)
+        if not content:
+            return jsonify({"error": "Gagal mengambil transkrip"}), 400
 
-    if not video_url:
-        return jsonify({"error": "URL video tidak ditemukan"}), 400
+        prompt = f"Tolong buatkan ringkasan dalam bentuk poin-poin dari isi video berikut dalam bahasa Indonesia:\n\n{content}"
 
-    content = get_transcript(video_url)
-    if not content:
-        return jsonify({"error": "Gagal mengambil transkrip"}), 400
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "http://localhost/solusiai/youtube-summarizer",
+            "X-Title": "YouTube Summarizer"
+        }
 
-    # Prompt selalu dalam bahasa Indonesia
-    prompt = f"Tolong buatkan ringkasan dalam bentuk poin-poin dari isi video berikut dalam bahasa Indonesia:\n\n{content}"
+        payload = {
+            "model": "deepseek/deepseek-r1:free",
+            "messages": [
+                {"role": "system", "content": "You are a helpful assistant that summarizes YouTube videos."},
+                {"role": "user", "content": prompt}
+            ]
+        }
 
-    # Request ke OpenRouter
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-        "HTTP-Referer": "http://localhost/solusiai/youtube-summarizer",
-        "X-Title": "YouTube Summarizer"
-    }
+        response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
 
-    payload = {
-        "model": "deepseek/deepseek-r1:free",
-        "messages": [
-            {"role": "system", "content": "You are a helpful assistant that summarizes YouTube videos."},
-            {"role": "user", "content": prompt}
-        ]
-    }
+        if response.status_code == 200:
+            result = response.json()
+            return jsonify({"summary": result["choices"][0]["message"]["content"]})
+        else:
+            return jsonify({"error": "Gagal meringkas video", "details": response.text}), 500
 
-    response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
+    except Exception as e:
+        # Tangkap semua error yang tidak terduga agar tidak crash
+        return jsonify({"error": "Terjadi error internal", "details": str(e)}), 500
 
-    if response.status_code == 200:
-        result = response.json()
-        return jsonify({"summary": result["choices"][0]["message"]["content"]})
-    else:
-        return jsonify({"error": "Gagal meringkas video", "details": response.text}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))  # ambil PORT dari environment variable
