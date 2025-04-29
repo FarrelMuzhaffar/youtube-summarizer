@@ -7,7 +7,8 @@ from youtube_transcript_api import YouTubeTranscriptApi
 
 # Setup Flask
 app = Flask(__name__)
-CORS(app)
+# Konfigurasi CORS untuk mengizinkan metode OPTIONS dan POST
+CORS(app, resources={r"/summarize": {"origins": "*", "methods": ["POST", "OPTIONS"]}})
 
 # Load API Key dari .env
 load_dotenv()
@@ -35,8 +36,17 @@ def home():
     return "YouTube Summarizer API is running 🚀", 200
 
 # Route API ringkasan
-@app.route("/summarize", methods=["POST"])
+@app.route("/summarize", methods=["POST", "OPTIONS"])
 def summarize():
+    # Tangani permintaan OPTIONS (preflight)
+    if request.method == "OPTIONS":
+        response = jsonify({"status": "OK"})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Methods", "POST, OPTIONS")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        return response, 200
+
+    # Tangani permintaan POST
     try:
         data = request.get_json()
         print(f"[DEBUG] Request Data: {data}")
