@@ -39,6 +39,15 @@ def summarize():
     data = request.get_json()
     video_url = data.get("video_url")
 
+
+
+@app.route("/", methods=["GET"])
+def home():
+    return "YouTube Summarizer API is running 🚀", 200
+
+
+
+
     if not video_url:
         return jsonify({"error": "URL video tidak ditemukan"}), 400
 
