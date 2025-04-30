@@ -7,7 +7,8 @@ from youtube_transcript_api import YouTubeTranscriptApi
 
 # Setup Flask
 app = Flask(__name__)
-CORS(app)
+
+CORS(app, resources={r"/summarize": {"origins": "https://solusiai.free.nf"}})
 
 # Load API Key dari .env
 load_dotenv()
