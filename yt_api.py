@@ -7,8 +7,7 @@ from youtube_transcript_api import YouTubeTranscriptApi
 
 # Setup Flask
 app = Flask(__name__)
-# Konfigurasi CORS untuk mengizinkan metode OPTIONS dan POST
-CORS(app, resources={r"/summarize": {"origins": "*", "methods": ["POST", "OPTIONS"]}})
+CORS(app)
 
 # Load API Key dari .env
 load_dotenv()
@@ -19,10 +18,8 @@ def get_transcript(video_url):
     try:
         video_id = video_url.split("v=")[-1].split("&")[0]
         try:
-            # Prioritaskan transkrip bahasa Indonesia
             transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['id'])
         except:
-            # Fallback ke bahasa Inggris jika tidak ada transkrip Indonesia
             transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['en'])
         text = " ".join([t['text'] for t in transcript])
         return text
@@ -30,26 +27,20 @@ def get_transcript(video_url):
         print(f"[ERROR] Gagal mengambil transkrip: {e}")
         return None
 
-# Route utama (untuk cek server aktif)
+# Route root (untuk test)
 @app.route("/", methods=["GET"])
 def home():
     return "YouTube Summarizer API is running 🚀", 200
 
-# Route API ringkasan
+# Route untuk merangkum
 @app.route("/summarize", methods=["POST", "OPTIONS"])
 def summarize():
-    # Tangani permintaan OPTIONS (preflight)
     if request.method == "OPTIONS":
-        response = jsonify({"status": "OK"})
-        response.headers.add("Access-Control-Allow-Origin", "*")
-        response.headers.add("Access-Control-Allow-Methods", "POST, OPTIONS")
-        response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
-        return response, 200
+        return '', 200  # Handle preflight CORS
 
-    # Tangani permintaan POST
     try:
-        data = request.get_json()
-        print(f"[DEBUG] Request Data: {data}")
+        data = request.get_json(force=True)
+        print(f"[DEBUG] Data diterima: {data}")
 
         if not data or "video_url" not in data:
             return jsonify({"error": "Parameter 'video_url' tidak ditemukan"}), 400
@@ -65,7 +56,7 @@ def summarize():
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
-            "HTTP-Referer": "https://yourdomain.com",  # opsional, ubah jika perlu
+            "HTTP-Referer": "https://solusiai.free.nf",
             "X-Title": "YouTube Summarizer"
         }
 
@@ -83,14 +74,14 @@ def summarize():
             result = response.json()
             return jsonify({"summary": result["choices"][0]["message"]["content"]})
         else:
-            print(f"[ERROR] OpenRouter API error: {response.status_code} - {response.text}")
+            print(f"[ERROR] OpenRouter error: {response.status_code} - {response.text}")
             return jsonify({"error": "Gagal meringkas video", "details": response.text}), 500
 
     except Exception as e:
-        print(f"[ERROR] Internal Server Error: {e}")
+        print(f"[ERROR] Exception: {e}")
         return jsonify({"error": "Terjadi error internal", "details": str(e)}), 500
 
-# Jalankan aplikasi (Railway pakai PORT dari env)
+# Jalankan di Railway
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
