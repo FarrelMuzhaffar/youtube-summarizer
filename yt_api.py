@@ -53,7 +53,7 @@ def summarize():
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
-            "HTTP-Referer": "https://solusiai.free.nf/summarize-ai",
+            "HTTP-Referer": "https://solusiai.free.nf/youtube-summarizer/",
             "X-Title": "YouTube Summarizer"
         }
 
