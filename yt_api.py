@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 # Perbaiki CORS untuk mendukung WordPress origin
-CORS(app, resources={r"/summarize": {"origins": ["https://solusiai.free.nf", "https://solusiai.free.nf/"]}})
+CORS(app, resources={r"/summarize": {"origins": ["https://lintasai.com", "https://lintasai.com/"]}})
 
 # Load API Key dari .env
 load_dotenv()
@@ -85,7 +85,7 @@ def summarize():
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
-            "HTTP-Referer": "https://solusiai.free.nf/youtube-summarizer/",
+            "HTTP-Referer": "https://lintasai.com/youtube-summarizer-ai/",
             "X-Title": "YouTube Summarizer"
         }
 
