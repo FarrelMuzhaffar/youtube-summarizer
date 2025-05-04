@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 # Setup Flask
 app = Flask(__name__)
-CORS(app, resources={r"/summarize": {"origins": ["https://lintasai.com", "https://lintasai.com/"]}})
+CORS(app, resources={r"/youtube-summarizer-ai": {"origins": ["https://lintasai.com", "https://lintasai.com/"]}})
 
 # Load API Key dari .env
 load_dotenv()
@@ -37,7 +37,7 @@ def extract_video_id(url):
 def home():
     return "YouTube Summarizer API is running 🚀", 200
 
-@app.route("/summarize", methods=["POST", "OPTIONS"])
+@app.route("/youtube-summarizer-ai", methods=["POST", "OPTIONS"])
 def summarize():
     if request.method == "OPTIONS":
         return '', 200
