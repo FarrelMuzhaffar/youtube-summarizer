@@ -13,21 +13,19 @@ logger = logging.getLogger(__name__)
 
 # Setup Flask
 app = Flask(__name__)
-
-# Perbaiki CORS untuk mendukung WordPress origin
 CORS(app, resources={r"/summarize": {"origins": ["https://lintasai.com", "https://lintasai.com/"]}})
 
 # Load API Key dari .env
 load_dotenv()
 api_key = os.getenv("OPENROUTER_API_KEY")
 
-# Fungsi untuk ekstrak video ID dari URL YouTube
+# Fungsi ekstrak video ID
 def extract_video_id(url):
     patterns = [
-        r'(?:v=|youtu\.be/)([0-9A-Za-z_-]{11})',  # Standard YouTube URL or youtu.be
-        r'youtube\.com/watch\?v=([0-9A-Za-z_-]{11})',  # Full YouTube URL
-        r'youtube\.com/embed/([0-9A-Za-z_-]{11})',  # Embed URL
-        r'youtube\.com/v/([0-9A-Za-z_-]{11})',  # Old YouTube URL
+        r'(?:v=|youtu\.be/)([0-9A-Za-z_-]{11})',
+        r'youtube\.com/watch\?v=([0-9A-Za-z_-]{11})',
+        r'youtube\.com/embed/([0-9A-Za-z_-]{11})',
+        r'youtube\.com/v/([0-9A-Za-z_-]{11})',
     ]
     for pattern in patterns:
         match = re.search(pattern, url)
@@ -55,13 +53,11 @@ def summarize():
         video_url = data["video_url"]
         logger.info(f"video_url: {video_url}")
 
-        # Ekstrak video ID
         video_id = extract_video_id(video_url)
         if not video_id:
             logger.error("URL YouTube tidak valid")
             return jsonify({"error": "URL YouTube tidak valid"}), 400
 
-        # Coba ambil transkrip
         try:
             transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=["id"])
         except (TranscriptsDisabled, NoTranscriptFound):
@@ -75,10 +71,13 @@ def summarize():
         content = " ".join([t["text"] for t in transcript])
         logger.info(f"Jumlah kata transkrip: {len(content.split())}")
 
-        # Batasi panjang transkrip untuk mencegah payload terlalu besar
         if len(content.split()) > 10000:
             content = " ".join(content.split()[:10000])
             logger.warning("Transkrip dipotong menjadi 10.000 kata")
+
+        if not api_key:
+            logger.error("API Key OpenRouter tidak ditemukan di environment!")
+            return jsonify({"error": "API Key tidak tersedia"}), 500
 
         prompt = f"Tolong buatkan ringkasan dalam bentuk poin-poin dari isi video berikut dalam bahasa Indonesia:\n\n{content}"
 
@@ -98,15 +97,23 @@ def summarize():
         }
 
         response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
-        logger.info(f"Response status dari OpenRouter: {response.status_code}")
+        logger.info(f"Status code dari OpenRouter: {response.status_code}")
 
-        if response.status_code == 200:
+        if response.status_code != 200:
+            logger.error(f"Error dari OpenRouter: {response.status_code} - {response.text}")
+            return jsonify({
+                "error": "Gagal meringkas video",
+                "details": response.text,
+                "status_code": response.status_code
+            }), 500
+
+        try:
             result = response.json()
             summary = result["choices"][0]["message"]["content"]
             return jsonify({"summary": summary})
-        else:
-            logger.error(f"Gagal meringkas: {response.status_code} - {response.text}")
-            return jsonify({"error": "Gagal meringkas video", "details": response.text}), 500
+        except Exception as e:
+            logger.error(f"Gagal parsing JSON dari OpenRouter: {str(e)}")
+            return jsonify({"error": "Gagal membaca respons dari OpenRouter", "details": str(e)}), 500
 
     except Exception as e:
         logger.error(f"Terjadi exception fatal: {str(e)}")
