@@ -13,11 +13,12 @@ logger = logging.getLogger(__name__)
 
 # Setup Flask
 app = Flask(__name__)
-CORS(app, resources={r"/summarize": {"origins": ["https://lintasai.com", "https://lintasai.com/"]}})
+CORS(app, resources={r"/summarize": {"origins": ["https://lintasai.com"]}})
 
 # Load API Key dari .env
 load_dotenv()
 api_key = os.getenv("OPENROUTER_API_KEY")
+logger.info(f"API Key loaded: {'[REDACTED]' if api_key else 'None'}")  # Log tanpa menampilkan API Key
 
 # Fungsi ekstrak video ID
 def extract_video_id(url):
