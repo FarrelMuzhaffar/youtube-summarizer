@@ -90,7 +90,7 @@ def summarize():
         }
 
         payload = {
-            "model": "deepseek/deepseek-r1:free",
+            "model": "deepseek/deepseek-chat-v3-0324:free",
             "messages": [
                 {"role": "system", "content": "You are a helpful assistant that summarizes YouTube videos."},
                 {"role": "user", "content": prompt}
